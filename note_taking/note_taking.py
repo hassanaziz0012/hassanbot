@@ -115,7 +115,7 @@ async def check_notes(ctx):
 @commands.command(aliases=['note'])
 async def read_note(ctx, title):
     note = Database.read_note(user=str(ctx.message.author), title=title)
-    embed = discord.Embed(description=str(note))
+    embed = discord.Embed(description=f"**{note[2]}**\n\n{note[3]}")
     await ctx.send(embed=embed)
 
 
