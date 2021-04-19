@@ -53,6 +53,22 @@ class Database:
             print(e)
 
     @staticmethod
+    def read_note(user: str, title: str):
+        try:
+            conn = Database.create_connection()
+
+            c = conn.cursor()
+            sql_code = f"""SELECT * FROM notes WHERE user=? AND title=?"""
+            c.execute(sql_code, (user,title))
+
+            note = c.fetchone()
+            return note
+
+        except sqlite3.Error as e:
+            print(e)
+        
+
+    @staticmethod
     def add_note(user: str, title: str, content: str):
         try:
             conn = Database.create_connection()
@@ -98,7 +114,8 @@ async def check_notes(ctx):
 
 @commands.command(aliases=['note'])
 async def read_note(ctx, title):
-    embed = discord.Embed(description="And, on the third day...")
+    note = Database.read_note(user=str(ctx.message.author), title=title)
+    embed = discord.Embed(description=str(note))
     await ctx.send(embed=embed)
 
 
