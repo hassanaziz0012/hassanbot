@@ -115,8 +115,11 @@ async def check_notes(ctx):
 @commands.command(aliases=['note'])
 async def read_note(ctx, title):
     note = Database.read_note(user=str(ctx.message.author), title=title)
-    embed = discord.Embed(description=f"**{note[2]}**\n\n{note[3]}")
-    await ctx.send(embed=embed)
+    if note:
+        embed = discord.Embed(description=f"**{note[2]}**\n\n{note[3]}")
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(embed=discord.Embed(description="Either this note does not exist or you entered the wrong title. Try again."))
 
 
 @commands.command(aliases=['writenote'])
