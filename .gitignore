@@ -1,3 +1,5 @@
 __pycache__/
-database/
+database/notes.db
+database/reminders.db
+database/wishlist.db
  
