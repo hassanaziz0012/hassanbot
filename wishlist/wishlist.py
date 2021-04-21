@@ -5,9 +5,8 @@ from discord.ext import commands
 
 
 class Database:
-
     @staticmethod
-    def create_connection(db_file=r'database\wishlist.db'):
+    def create_connection(db_file=r"database\wishlist.db"):
         "Create a database connection to a SQLite database"
         conn = None
         try:
@@ -28,7 +27,8 @@ class Database:
                 id integer PRIMARY KEY,
                 item_name text NOT NULL,
                 item_url text,
-                user text NOT NULL
+                user text NOT NULL,
+                user_id integer NOT NULL
                 );"""
 
             c.execute(sql_code)
@@ -38,13 +38,13 @@ class Database:
             print(e)
 
     @staticmethod
-    def check_wishlist(user: str):
+    def check_wishlist(user_id: int):
         try:
             conn = Database.create_connection()
 
             c = conn.cursor()
-            sql_code = f"""SELECT * FROM wishlists WHERE user=?"""
-            c.execute(sql_code, (user,))
+            sql_code = f"""SELECT * FROM wishlists WHERE user_id=?"""
+            c.execute(sql_code, (user_id,))
 
             rows = c.fetchall()
             return rows
@@ -53,12 +53,12 @@ class Database:
             print(e)
 
     @staticmethod
-    def add_to_wishlist(user: str, item_name: str, item_url):
+    def add_to_wishlist(user: str, user_id: int, item_name: str, item_url):
         try:
             conn = Database.create_connection()
             c = conn.cursor()
-            sql_code = f"""INSERT INTO wishlists(item_name,item_url,user) VALUES(?,?,?)"""
-            values = (item_name, item_url, user)
+            sql_code = f"""INSERT INTO wishlists(item_name,item_url,user,user_id) VALUES(?,?,?,?)"""
+            values = (item_name, item_url, user, user_id)
 
             c.execute(sql_code, values)
             conn.commit()
@@ -69,13 +69,19 @@ class Database:
             print(e)
 
     @staticmethod
-    def remove_from_wishlist(item_name: str, user: str):
+    def remove_from_wishlist(item_name: str, user_id: int):
         try:
             conn = Database.create_connection()
             c = conn.cursor()
-            sql_code = f"""DELETE FROM wishlists WHERE item_name = ? AND user = ?"""
+            sql_code = f"""DELETE FROM wishlists WHERE item_name = ? AND user_id = ?"""
 
-            c.execute(sql_code, (item_name, user,))
+            c.execute(
+                sql_code,
+                (
+                    item_name,
+                    user_id,
+                ),
+            )
             conn.commit()
             conn.close()
 
@@ -83,9 +89,9 @@ class Database:
             print(e)
 
 
-@commands.command(aliases=['check-wishlist', 'check-wl'])
+@commands.command(aliases=["wishlist"])
 async def check_wishlist(ctx):
-    rows = Database.check_wishlist(str(ctx.message.author))
+    rows = Database.check_wishlist(user_id=int(ctx.message.author.id))
     items = []
     if rows:
         for row in rows:
@@ -93,27 +99,36 @@ async def check_wishlist(ctx):
             items.append(f"({row[0]}) {row[1]} - {row[2]}")
 
     embed = discord.Embed()
-    embed.description = f"Your wishlist currently has the following items:\n\n" + \
-        "\n".join(items)
+    embed.description = (
+        f"Your wishlist currently has the following items:\n\n" + "\n".join(items)
+    )
     await ctx.send(embed=embed)
 
 
-@commands.command(aliases=['add-to-wishlist', 'add-to-wl'])
+@commands.command(aliases=["add-to-wishlist", "add-to-wl"])
 async def add_to_wishlist(ctx, item_name: str, *, item_url=None):
-    Database.add_to_wishlist(user=str(ctx.message.author),
-                             item_name=str(item_name), item_url=item_url)
+    Database.add_to_wishlist(
+        user=str(ctx.message.author),
+        user_id=int(ctx.message.author.id),
+        item_name=str(item_name),
+        item_url=item_url,
+    )
     embed = discord.Embed()
-    embed.description = f"Added the following item to your wishlist:\n{item_name} - Link: {item_url}"
+    embed.description = (
+        f"Added the following item to your wishlist:\n{item_name} - Link: {item_url}"
+    )
 
     await ctx.send(embed=embed)
 
 
-@commands.command(aliases=['delete-from-wl', 'remove-from-wl'])
+@commands.command(aliases=["delete-from-wl", "remove-from-wl"])
 async def remove_from_wishlist(ctx, item_name: str):
-    Database.remove_from_wishlist(item_name=str(
-        item_name), user=str(ctx.message.author))
+    Database.remove_from_wishlist(
+        item_name=str(item_name), user_id=int(ctx.message.author.id)
+    )
     embed = discord.Embed(
-        description=f"{item_name} has been successfully removed from your wishlist.")
+        description=f"{item_name} has been successfully removed from your wishlist."
+    )
     await ctx.send(embed=embed)
 
 
