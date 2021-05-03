@@ -3,6 +3,7 @@ import random
 from discord.ext import commands
 import requests
 from config import token
+from zipfile import ZipFile
 import asyncio
 
 from reminders.reminders import check_for_due_reminders, remove_due_reminders
@@ -38,6 +39,7 @@ responses = [
 
 @client.event
 async def on_ready():
+    # We're basically using the on_ready event to check for due reminders.
     print("Bot is ready")
     while True:
         due_reminders = await check_for_due_reminders()
@@ -49,17 +51,28 @@ async def on_ready():
                 await remove_due_reminders(reminder)
 
         await asyncio.sleep(3)
-        print("Checking for reminders...")
+        # print("Checking for reminders...")
 
 
 @client.command(aliases=["download-attachments", "dl-attachments"])
 async def download_attachments(ctx, channel: discord.TextChannel):
-    async for message in channel.history(limit=200):
-        for attachment in message.attachments:
-            url = attachment.url
-            response = requests.get(url)
-            with open(attachment.filename, "wb+") as file:
-                file.write(response.content)
+    await ctx.send(
+        "Downloading attachments from this channel. This may take a long time. Please wait."
+    )
+    with ZipFile(f"{channel.name} - Attachments.zip", "w") as zip:
+        async for message in channel.history(limit=200):
+            for i, attachment in enumerate(message.attachments):
+                url = attachment.url
+                response = requests.get(url)
+                with open(f"file00{i}-{attachment.filename}", "wb+") as file:
+                    file.write(response.content)
+                    print(f"Adding {file.name} to archive...")
+                    zip.write(file.name)
+        await ctx.send(
+            "Downloaded and Archived all attachments from this channel. Uploading .zip archive to Discord..."
+        )
+        zip.close()
+        await ctx.send(file=discord.File(f"{channel.name} - Attachments.zip"))
 
 
 @client.command()
@@ -74,8 +87,15 @@ async def kick(ctx, member: discord.Member, *, reason=None):
 
 
 @client.command(aliases=["8ball"])
-async def _8ball(ctx, *, question):
-    await ctx.send(f"Question: {question}\nAnswer: {random.choice(responses)}")
+async def _8ball(ctx, *, question=None):
+    if question is not None:
+        await ctx.send(f"Question: {question}\nAnswer: {random.choice(responses)}")
+    else:
+        await ctx.send(
+            embed=discord.Embed(
+                description="**8 Ball:** You need to give a question as well."
+            )
+        )
 
 
 client.load_extension("wishlist.wishlist")
