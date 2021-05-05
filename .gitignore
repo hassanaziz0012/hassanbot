@@ -2,5 +2,4 @@ __pycache__/
 database/notes.db
 database/reminders.db
 database/wishlist.db
-credentials.json
-token.json
+
