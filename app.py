@@ -1,10 +1,18 @@
+from utils import (
+    delete_downloaded_files,
+    delete_file_from_google_drive,
+    download_attachment,
+    upload_to_gdrive,
+)
 import discord
 import random
+from discord.errors import HTTPException
 from discord.ext import commands
 import requests
 from config import token
 from zipfile import ZipFile
 import asyncio
+import os
 
 from reminders.reminders import check_for_due_reminders, remove_due_reminders
 
@@ -56,23 +64,47 @@ async def on_ready():
 
 @client.command(aliases=["download-attachments", "dl-attachments"])
 async def download_attachments(ctx, channel: discord.TextChannel):
+    # TODO: Simplify this code. It's very messy...
+    # TODO: Delete file from GDrive after 1 hour...
+
     await ctx.send(
         "Downloading attachments from this channel. This may take a long time. Please wait."
     )
     with ZipFile(f"{channel.name} - Attachments.zip", "w") as zip:
         async for message in channel.history(limit=200):
             for i, attachment in enumerate(message.attachments):
-                url = attachment.url
-                response = requests.get(url)
-                with open(f"file00{i}-{attachment.filename}", "wb+") as file:
-                    file.write(response.content)
-                    print(f"Adding {file.name} to archive...")
-                    zip.write(file.name)
+                file_name = download_attachment(i, attachment)
+                print(f"Adding {file_name} to archive...")
+                zip.write(file_name)
+
         await ctx.send(
             "Downloaded and Archived all attachments from this channel. Uploading .zip archive to Discord..."
         )
         zip.close()
-        await ctx.send(file=discord.File(f"{channel.name} - Attachments.zip"))
+
+        # Discord only allows file uploads of 8MB maximum. So, we check if our file is too large. It will raise the HTTPException error if the filesize is too large.
+        # If it is too large, we will upload to Google Drive instead, and will give the user a temporary link to download the file. This link will expire in 1 hour
+        # and the file will be deleted.
+        try:
+            await ctx.send(file=discord.File(f"{channel.name} - Attachments.zip"))
+        except HTTPException:
+            await ctx.send(
+                "File is too large to upload to Discord. Uploading to Google Drive..."
+            )
+
+            result = upload_to_gdrive(zip)
+            await ctx.send(
+                embed=discord.Embed(
+                    description=f"Finished uploading to Google Drive. Please go to the following link to download the file:\n{result['download_link']}\n\nThis link will automatically expire after **1 hour**."
+                )
+            )
+
+            # Delete file from GDrive after one hour.
+            await asyncio.sleep(3600)
+            delete_file_from_google_drive(result["file_id"])
+
+    # Deleting downloaded files so we don't waste precious space.
+    delete_downloaded_files()
 
 
 @client.command()
