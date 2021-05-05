@@ -76,3 +76,18 @@ def download_attachment(i, attachment):
     with open(f"file00{i}-{attachment.filename}", "wb+") as file:
         file.write(response.content)
         return file.name
+
+
+def change_file_permissions_to_anyone(fileId):
+    drive = set_up_gdrive_api()
+
+    file_perms = (
+        drive.permissions()
+        .create(
+            fileId=fileId,
+            body={"role": "reader", "type": "anyone"},
+        )
+        .execute()
+    )
+
+    return file_perms

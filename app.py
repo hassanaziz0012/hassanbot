@@ -1,4 +1,5 @@
 from utils import (
+    change_file_permissions_to_anyone,
     delete_downloaded_files,
     delete_file_from_google_drive,
     download_attachment,
@@ -98,6 +99,9 @@ async def download_attachments(ctx, channel: discord.TextChannel):
                     description=f"Finished uploading to Google Drive. Please go to the following link to download the file:\n{result['download_link']}\n\nThis link will automatically expire after **1 hour**."
                 )
             )
+
+            # Change perms so anyone can see and download the file.
+            change_file_permissions_to_anyone(result["file_id"])
 
             # Delete file from GDrive after one hour.
             await asyncio.sleep(3600)
