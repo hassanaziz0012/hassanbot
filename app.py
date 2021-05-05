@@ -77,6 +77,7 @@ async def download_attachments(ctx, channel: discord.TextChannel):
                 file_name = download_attachment(i, attachment)
                 print(f"Adding {file_name} to archive...")
                 zip.write(file_name)
+                asyncio.sleep(0.1)
 
         await ctx.send(
             "Downloaded and Archived all attachments from this channel. Uploading .zip archive to Discord..."
