@@ -2,3 +2,5 @@ async-generator==1.10
 async-timeout==3.0.1
 discord.py==1.7.1
 requests==2.25.1
+google-api-core==1.26.1
+google-api-python-client==2.3.0
