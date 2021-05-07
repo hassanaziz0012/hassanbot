@@ -14,6 +14,7 @@ from config import token
 from zipfile import ZipFile
 import asyncio
 import os
+import psycopg2
 
 from reminders.reminders import check_for_due_reminders, remove_due_reminders
 
@@ -133,6 +134,16 @@ async def _8ball(ctx, *, question=None):
                 description="**8 Ball:** You need to give a question as well."
             )
         )
+
+
+@client.command(aliases=["test-db"])
+async def test_db(ctx):
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+    con = psycopg2.connect(DATABASE_URL)
+    cur = con.cursor()
+
+    await ctx.send("Successfully connected to Postgres database.")
+    await ctx.send(str(cur))
 
 
 client.load_extension("wishlist.wishlist")
