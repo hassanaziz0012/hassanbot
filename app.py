@@ -122,6 +122,15 @@ async def remove_urls(ctx):
     print("Command finished.")
 
 @client.command()
+async def remove_text(ctx, text: str):
+    for channel in ctx.guild.channels:
+        if isinstance(channel, discord.TextChannel):
+            async for message in channel.history(limit=1000):
+                if text in message.content:
+                    await message.delete()
+    print("Command finished.")
+
+@client.command()
 async def clear(ctx, amount: int = 5):
     await ctx.channel.purge(limit=amount)
 
