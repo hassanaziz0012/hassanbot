@@ -15,6 +15,7 @@ from zipfile import ZipFile
 import asyncio
 import os
 import psycopg2
+import re
 
 from reminders.reminders import check_for_due_reminders, remove_due_reminders
 
@@ -66,9 +67,6 @@ async def on_ready():
 
 @client.command(aliases=["download-attachments", "dl-attachments"])
 async def download_attachments(ctx, channel: discord.TextChannel):
-    # TODO: Simplify this code. It's very messy...
-    # TODO: Delete file from GDrive after 1 hour...
-
     await ctx.send(
         "Downloading attachments from this channel. This may take a long time. Please wait."
     )
@@ -112,6 +110,16 @@ async def download_attachments(ctx, channel: discord.TextChannel):
     # Deleting downloaded files so we don't waste precious space.
     delete_downloaded_files()
 
+@client.command()
+async def remove_urls(ctx):
+    for channel in ctx.guild.channels:
+        if isinstance(channel, discord.TextChannel):
+            async for message in channel.history(limit=1000):
+                regex = r"[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)"
+                match = re.search(regex, message.content)
+                if match:
+                    await message.delete()
+    print("Command finished.")
 
 @client.command()
 async def clear(ctx, amount: int = 5):
