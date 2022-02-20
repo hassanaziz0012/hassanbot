@@ -104,7 +104,7 @@ async def download_attachments(ctx, channel: discord.TextChannel):
             change_file_permissions_to_anyone(result["file_id"])
 
             # Delete file from GDrive after one hour.
-            await asyncio.sleep(3600)
+            await asyncio.sleep(86400)
             delete_file_from_google_drive(result["file_id"])
 
     # Deleting downloaded files so we don't waste precious space.
