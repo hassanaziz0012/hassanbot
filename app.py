@@ -4,7 +4,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 import asyncio
 
-from reminders.reminders import check_for_due_reminders, remove_due_reminders
+from reminders import check_for_due_reminders, remove_due_reminders
 
 intents = discord.Intents.default()
 intents.members = True
@@ -30,12 +30,12 @@ async def on_ready():
 
 
 # Loading all bot extensions...
-client.load_extension("wishlist.wishlist")
-client.load_extension("google.google_apis")
-client.load_extension("note_taking.note_taking")
-client.load_extension("reminders.reminders")
-client.load_extension("misc.misc")
-client.load_extension("text_removal.remover")
+client.load_extension("wishlist")
+client.load_extension("google_apis")
+client.add_cog("note_taking")
+client.load_extension("reminders")
+client.load_extension("misc")
+client.load_extension("text_remover")
 
 if __name__ == "__main__":
     load_dotenv()
