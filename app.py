@@ -39,5 +39,5 @@ client.load_extension("text_removal.remover")
 
 if __name__ == "__main__":
     load_dotenv()
-    token = os.environ.get('token')
+    token = os.environ.get('TOKEN')
     client.run(token)
