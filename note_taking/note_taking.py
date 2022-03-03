@@ -135,109 +135,109 @@ class Database:
         except sqlite3.Error as e:
             print(e)
 
+class NotesCog(commands.Cog, name="Notes"):
+    def __init__(self, bot) -> None:
+        self.bot = bot
 
-@commands.command(aliases=["notes"])
-async def check_notes(ctx):
-    "This command will retrieve all notes from the Database that belong to the user who sent the command."
-    rows = Database.check_notes(user_id=int(ctx.message.author.id))
+    @commands.command(aliases=["notes"])
+    async def check_notes(ctx):
+        "This command will retrieve all notes from the Database that belong to the user who sent the command."
+        rows = Database.check_notes(user_id=int(ctx.message.author.id))
 
-    items = []
-    if rows:
-        for row in rows:
-            items.append(f"({row[0]}) {row[3]}")
+        items = []
+        if rows:
+            for row in rows:
+                items.append(f"({row[0]}) {row[3]}")
 
-    embed = discord.Embed(description="**YOUR NOTES:**\n\n" + "\n".join(items))
-    await ctx.send(embed=embed)
+        embed = discord.Embed(description="**YOUR NOTES:**\n\n" + "\n".join(items))
+        await ctx.send(embed=embed)
 
 
-@commands.command(aliases=["note"])
-async def read_note(ctx, title: str = None):
-    """
-    This function retrieves a single note which matches the given 'title' and belongs to the user who sent the command.
+    @commands.command(aliases=["note"])
+    async def read_note(ctx, title: str = None):
+        """
+        This function retrieves a single note which matches the given 'title' and belongs to the user who sent the command.
 
-    param <title>: A string that uniquely identifies the note. Each note has a title.
-    """
-    if title is not None:
-        note = Database.read_note(user_id=int(ctx.message.author.id), title=title)
-        if note:
-            embed = discord.Embed(description=f"**{note[3]}**\n\n{note[4]}")
+        param <title>: A string that uniquely identifies the note. Each note has a title.
+        """
+        if title is not None:
+            note = Database.read_note(user_id=int(ctx.message.author.id), title=title)
+            if note:
+                embed = discord.Embed(description=f"**{note[3]}**\n\n{note[4]}")
+                await ctx.send(embed=embed)
+            else:
+                await ctx.send(
+                    embed=discord.Embed(
+                        description="Either this note does not exist or you entered the wrong title. Try again."
+                    )
+                )
+        else:
+            await ctx.send(
+                embed=discord.Embed(
+                    description="You forgot to enter a title. You need to type the title of the note."
+                )
+            )
+
+
+    @commands.command(aliases=["writenote"])
+    async def write_note(ctx, title: str = None, *, content: str = None):
+        """
+        This function calls the add_note() function in the Database class to create a new note. It takes the following parameters:
+
+        param <title>: A string that uniquely identifies the note. Each note has a title.
+        param <content>: A string that contains all the content in the note.
+        """
+        if title is not None and content is not None:
+            Database.add_note(
+                user=str(ctx.message.author),
+                user_id=int(ctx.message.author.id),
+                title=title,
+                content=content,
+            )
+
+            embed = discord.Embed(description=f"**{title}**\n\n{content}")
             await ctx.send(embed=embed)
         else:
             await ctx.send(
                 embed=discord.Embed(
-                    description="Either this note does not exist or you entered the wrong title. Try again."
+                    description="""
+                        You forgot to enter either a title or some content for this note. Please try again and enter both a title and the content for this note. 
+                        \nRemember that the title should be enclosed in double quotes, such as, "Title goes here". You don\'t have to enclose the content in double quotes.
+                        """
                 )
             )
-    else:
-        await ctx.send(
-            embed=discord.Embed(
-                description="You forgot to enter a title. You need to type the title of the note."
+
+
+    @commands.command(aliases=["removenote"])
+    async def remove_note(ctx, title=None):
+        """
+        This function is used to remove a note from the database.
+
+        param <title>: A string that uniquely identifies the note. Each note has a title.
+        """
+        if title is not None:
+            selected_note = Database.read_note(
+                user_id=int(ctx.message.author.id), title=title
             )
-        )
+            if selected_note is not None:
+                Database.remove_note(title=title, user_id=int(ctx.message.author.id))
+            else:
+                await ctx.send(
+                    embed=discord.Embed(
+                        description="The title you entered does not match any existing note. Please try again."
+                    )
+                )
+                return
 
-
-@commands.command(aliases=["writenote"])
-async def write_note(ctx, title: str = None, *, content: str = None):
-    """
-    This function calls the add_note() function in the Database class to create a new note. It takes the following parameters:
-
-    param <title>: A string that uniquely identifies the note. Each note has a title.
-    param <content>: A string that contains all the content in the note.
-    """
-    if title is not None and content is not None:
-        Database.add_note(
-            user=str(ctx.message.author),
-            user_id=int(ctx.message.author.id),
-            title=title,
-            content=content,
-        )
-
-        embed = discord.Embed(description=f"**{title}**\n\n{content}")
-        await ctx.send(embed=embed)
-    else:
-        await ctx.send(
-            embed=discord.Embed(
-                description="""
-                    You forgot to enter either a title or some content for this note. Please try again and enter both a title and the content for this note. 
-                    \nRemember that the title should be enclosed in double quotes, such as, "Title goes here". You don\'t have to enclose the content in double quotes.
-                    """
-            )
-        )
-
-
-@commands.command(aliases=["removenote"])
-async def remove_note(ctx, title=None):
-    """
-    This function is used to remove a note from the database.
-
-    param <title>: A string that uniquely identifies the note. Each note has a title.
-    """
-    if title is not None:
-        selected_note = Database.read_note(
-            user_id=int(ctx.message.author.id), title=title
-        )
-        if selected_note is not None:
-            Database.remove_note(title=title, user_id=int(ctx.message.author.id))
+            embed = discord.Embed(description=f"**{title}** has been removed!")
+            await ctx.send(embed=embed)
         else:
             await ctx.send(
                 embed=discord.Embed(
-                    description="The title you entered does not match any existing note. Please try again."
+                    description="You did not enter a title. Please enter the title of the note you want to delete."
                 )
             )
-            return
-
-        embed = discord.Embed(description=f"**{title}** has been removed!")
-        await ctx.send(embed=embed)
-    else:
-        await ctx.send(
-            embed=discord.Embed(
-                description="You did not enter a title. Please enter the title of the note you want to delete."
-            )
-        )
 
 
 def setup(client):
-    client.add_command(check_notes)
-    client.add_command(read_note)
-    client.add_command(write_note)
-    client.add_command(remove_note)
+    client.add_cog(NotesCog)
