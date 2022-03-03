@@ -35,19 +35,10 @@ You can also use this bot to add reminders so you never forget anything. The bot
 
 ## Misc features
 This bot can also do a couple other things:
-<<<<<<< HEAD
 "dl-attachments [channel]" - Downloads all attachments from a particular channel, puts them all in a .zip file, and uploads the .zip file to the channel so you can download it. This was a feature requested by a friend and isn't really something you'd see in most bots.
-=======
-
-"dl-attachments [channel]" - Downloads all attachments from a particular channel, puts them all in a .zip file, and uploads the .zip file to the channel so you can downlaod it. This was a feature requested by a friend and isn't really something you'd see in most bots.
->>>>>>> d49c86442004f22606a78d2122c1a65861756f8f
 
 "clear [amount]" - Clears the last 5 messages if [amount] is not specified. Otherwise, deletes the amount of messages the user wants.
 
 "kick [user] [reason]" - Use this to kick a user from your server. The reason is an optional argument.
 
-<<<<<<< HEAD
 "8ball [question]" - Ask the Magic 8 Ball a question. In my experience, it has always been correct :).
-=======
-"8ball [question]" - Ask the Magic 8 Ball a question. In my experience, it has always been correct :).
->>>>>>> d49c86442004f22606a78d2122c1a65861756f8f
