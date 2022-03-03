@@ -4,3 +4,4 @@ database/reminders.db
 database/wishlist.db
 credentials.json
 token.json
+.env

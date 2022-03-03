@@ -1,6 +1,7 @@
+import os
 import discord
 from discord.ext import commands
-from config import token
+from dotenv import load_dotenv
 import asyncio
 
 from reminders.reminders import check_for_due_reminders, remove_due_reminders
@@ -37,4 +38,6 @@ client.load_extension("misc.misc")
 client.load_extension("text_removal.remover")
 
 if __name__ == "__main__":
+    load_dotenv()
+    token = os.environ.get('token')
     client.run(token)
