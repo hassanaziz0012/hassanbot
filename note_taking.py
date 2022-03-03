@@ -240,4 +240,4 @@ class NotesCog(commands.Cog, name="Notes"):
 
 
 def setup(client):
-    client.add_cog(NotesCog)
+    client.add_cog(NotesCog(client))
