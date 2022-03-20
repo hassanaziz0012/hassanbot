@@ -140,8 +140,10 @@ class NotesCog(commands.Cog, name="Notes"):
         self.bot = bot
 
     @commands.command(aliases=["notes"])
-    async def check_notes(ctx):
-        "This command will retrieve all notes from the Database that belong to the user who sent the command."
+    async def check_notes(self, ctx):
+        """
+        Get all the notes stored in your account.
+        """
         rows = Database.check_notes(user_id=int(ctx.message.author.id))
 
         items = []
@@ -154,11 +156,12 @@ class NotesCog(commands.Cog, name="Notes"):
 
 
     @commands.command(aliases=["note"])
-    async def read_note(ctx, title: str = None):
+    async def read_note(self, ctx, title: str = None):
         """
-        This function retrieves a single note which matches the given 'title' and belongs to the user who sent the command.
+        Read a specific note in your collection.
 
-        param <title>: A string that uniquely identifies the note. Each note has a title.
+        Usage:
+        > .read_note "Note Title"
         """
         if title is not None:
             note = Database.read_note(user_id=int(ctx.message.author.id), title=title)
@@ -180,12 +183,14 @@ class NotesCog(commands.Cog, name="Notes"):
 
 
     @commands.command(aliases=["writenote"])
-    async def write_note(ctx, title: str = None, *, content: str = None):
+    async def write_note(self, ctx, title: str = None, *, content: str = None):
         """
-        This function calls the add_note() function in the Database class to create a new note. It takes the following parameters:
+        Add a new note to your collection. 
 
-        param <title>: A string that uniquely identifies the note. Each note has a title.
-        param <content>: A string that contains all the content in the note.
+        Provide the title and the content for the note as well.
+
+        Usage:
+        > .write_note "Title goes here" "Content goes here"
         """
         if title is not None and content is not None:
             Database.add_note(
@@ -209,7 +214,7 @@ class NotesCog(commands.Cog, name="Notes"):
 
 
     @commands.command(aliases=["removenote"])
-    async def remove_note(ctx, title=None):
+    async def remove_note(self, ctx, title=None):
         """
         This function is used to remove a note from the database.
 

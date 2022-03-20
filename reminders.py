@@ -161,106 +161,120 @@ class Utilities:
         result = str(date_in_readable_form) + " - " + str(time_in_readable_form)
         return result
 
+class RemindersCog(commands.Cog, name="Reminders"):
+    def __init__(self, bot) -> None:
+        self.bot = bot
 
-@commands.command(aliases=["reminder"])
-async def create_reminder(ctx, time, reminder):
+    @commands.command(aliases=["reminder"])
+    async def create_reminder(self, ctx, time, reminder):
+        """
+        Create a new reminder.
 
-    try:
-        # Read the "time" argument to figure out how many days, hours, and minutes until we remind the user.
-        days, hours, minutes = None, None, None
-        if "d" in time:
-            pattern = "\d+d"
-            match = re.search(pattern, time)
-            days = str(match.group()).replace("d", "")
+        Usage:
+        > .create_reminder 1d6h "Do things"
+        This will remind you in 1 day and 6 hours.
+        """
 
-        if "h" in time:
-            print(time)
-            pattern = "\d+h"
-            match = re.search(pattern, time, flags=re.IGNORECASE)
-            hours = str(match.group()).replace("h", "")
+        try:
+            # Read the "time" argument to figure out how many days, hours, and minutes until we remind the user.
+            days, hours, minutes = None, None, None
+            if "d" in time:
+                pattern = "\d+d"
+                match = re.search(pattern, time)
+                days = str(match.group()).replace("d", "")
 
-        if "m" in time:
-            pattern = "\d+m"
-            match = re.search(pattern, time)
-            minutes = str(match.group()).replace("m", "")
+            if "h" in time:
+                print(time)
+                pattern = "\d+h"
+                match = re.search(pattern, time, flags=re.IGNORECASE)
+                hours = str(match.group()).replace("h", "")
 
-        # There is a possibility that the user does not enter a day or an hour or a minute. We check for that possiblity here using ternary operators.
-        reminder_date = datetime.today() + timedelta(
-            days=int(days if days else 0),
-            hours=int(hours if hours else 0),
-            minutes=int(minutes if minutes else 0),
-        )
+            if "m" in time:
+                pattern = "\d+m"
+                match = re.search(pattern, time)
+                minutes = str(match.group()).replace("m", "")
 
-    except Exception as e:
-        await ctx.send(
-            embed=discord.Embed(
-                description=f"You have provided an invalid date and time. Please try again. The actual error is reproduced below:\n\n\{e}"
+            # There is a possibility that the user does not enter a day or an hour or a minute. We check for that possiblity here using ternary operators.
+            reminder_date = datetime.today() + timedelta(
+                days=int(days if days else 0),
+                hours=int(hours if hours else 0),
+                minutes=int(minutes if minutes else 0),
             )
+
+        except Exception as e:
+            await ctx.send(
+                embed=discord.Embed(
+                    description=f"You have provided an invalid date and time. Please try again. The actual error is reproduced below:\n\n\{e}"
+                )
+            )
+
+        # We convert the reminder_date into a more readable form, which will be given to the user.
+        reminder_date_in_readable_form = Utilities.convert_date_to_readable_form(
+            reminder_date
         )
 
-    # We convert the reminder_date into a more readable form, which will be given to the user.
-    reminder_date_in_readable_form = Utilities.convert_date_to_readable_form(
-        reminder_date
-    )
+        Database.add_reminder(
+            user=str(ctx.message.author),
+            user_id=int(ctx.message.author.id),
+            reminder=reminder,
+            time=reminder_date,
+        )
 
-    Database.add_reminder(
-        user=str(ctx.message.author),
-        user_id=int(ctx.message.author.id),
-        reminder=reminder,
-        time=reminder_date,
-    )
-
-    embed = discord.Embed(
-        description=f'Created reminder *"{reminder}"* due on **{reminder_date_in_readable_form}**'
-    )
-    await ctx.send(embed=embed)
-
-
-@commands.command(aliases=["reminders"])
-async def read_reminders(ctx):
-    rows = Database.check_reminders(user_id=str(ctx.message.author.id))
-    items = []
-
-    if rows:
-        for row in rows:
-            date_str = Utilities.convert_date_to_readable_form(row[4])
-            items.append(f"({row[0]}) {row[3]} due at **{date_str}**")
         embed = discord.Embed(
-            description=f"**Reminders for {ctx.message.author.mention}**\n\n"
-            + "\n".join(items)
+            description=f'Created reminder *"{reminder}"* due on **{reminder_date_in_readable_form}**'
         )
         await ctx.send(embed=embed)
-    else:
-        await ctx.send(
-            embed=discord.Embed(
-                description=f"No reminders for {ctx.message.author.mention}."
+
+
+    @commands.command(aliases=["reminders"])
+    async def read_reminders(self, ctx):
+        """
+        Check all reminders you currently have.
+        """
+        rows = Database.check_reminders(user_id=str(ctx.message.author.id))
+        items = []
+
+        if rows:
+            for row in rows:
+                date_str = Utilities.convert_date_to_readable_form(row[4])
+                items.append(f"({row[0]}) {row[3]} due at **{date_str}**")
+            embed = discord.Embed(
+                description=f"**Reminders for {ctx.message.author.mention}**\n\n"
+                + "\n".join(items)
             )
-        )
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send(
+                embed=discord.Embed(
+                    description=f"No reminders for {ctx.message.author.mention}."
+                )
+            )
 
 
-@commands.command(aliases=["rm-reminder"])
-async def remove_reminder(ctx, reminder):
-    pass
+    @commands.command(aliases=["rm-reminder"])
+    async def remove_reminder(self, ctx, reminder):
+        """
+        This command is incomplete and under construction!
+        """
+        pass
 
+    @staticmethod
+    async def check_for_due_reminders():
+        rows = Database.get_all_reminders()
+        due_reminders = []
+        if rows:
+            for row in rows:
+                date_str = row[4]
+                if date_str <= datetime.now():
+                    due_reminders.append(row)
+            return due_reminders
+        else:
+            return None
 
-async def check_for_due_reminders():
-    rows = Database.get_all_reminders()
-    due_reminders = []
-    if rows:
-        for row in rows:
-            date_str = row[4]
-            if date_str <= datetime.now():
-                due_reminders.append(row)
-        return due_reminders
-    else:
-        return None
-
-
-async def remove_due_reminders(reminder: List):
-    Database.remove_reminder(reminder=reminder[3], user_id=reminder[2])
+    @staticmethod
+    async def remove_due_reminders(reminder: List):
+        Database.remove_reminder(reminder=reminder[3], user_id=reminder[2])
 
 
 def setup(client):
-    client.add_command(read_reminders)
-    client.add_command(create_reminder)
-    client.add_command(remove_reminder)
+    client.add_cog(RemindersCog(client))

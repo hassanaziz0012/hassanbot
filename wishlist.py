@@ -109,75 +109,90 @@ class Database:
             print(e)
 
 
-@commands.command(aliases=["wishlist"])
-async def check_wishlist(ctx):
-    "This function retrieves all wishlist items of the user who sent the command."
-    rows = Database.check_wishlist(user_id=int(ctx.message.author.id))
-    items = []
-    if rows:
-        for row in rows:
-            # 0 = ID, 1 = Item Name, 2 = Item URL, and 3 (which we don't print) = User's name
-            items.append(f"({row[0]}) {row[1]} - {row[2]}")
+class WishlistCog(commands.Cog, name="Wishlist"):
+    def __init__(self, bot) -> None:
+        self.bot = bot
 
-    embed = discord.Embed()
-    embed.description = (
-        f"Your wishlist currently has the following items:\n\n" + "\n".join(items)
-    )
-    await ctx.send(embed=embed)
+    @commands.command(aliases=["wishlist"])
+    async def check_wishlist(self, ctx):
+        """
+        Retrieves all items in your wishlist.
+        """
+        rows = Database.check_wishlist(user_id=int(ctx.message.author.id))
+        items = []
+        if rows:
+            for row in rows:
+                # 0 = ID, 1 = Item Name, 2 = Item URL, and 3 (which we don't print) = User's name
+                items.append(f"({row[0]}) {row[1]} - {row[2]}")
 
-
-@commands.command(aliases=["add-to-wishlist", "add-to-wl"])
-async def add_to_wishlist(ctx, item_name: str = None, *, item_url: str = None):
-    if item_name is not None:
-        Database.add_to_wishlist(
-            user=str(ctx.message.author),
-            user_id=int(ctx.message.author.id),
-            item_name=str(item_name),
-            item_url=item_url,
-        )
         embed = discord.Embed()
-        embed.description = f"Added the following item to your wishlist:\n{item_name} - Link: {item_url}"
-
+        embed.description = (
+            f"Your wishlist currently has the following items:\n\n" + "\n".join(items)
+        )
         await ctx.send(embed=embed)
-    else:
-        await ctx.send(
-            embed=discord.Embed(
-                description='You forgot to enter a name for your item. Please try again, and type a name this time. The name should be enclosed in double quotes, such as, "Name goes here".'
-            )
-        )
 
 
-@commands.command(aliases=["delete-from-wl", "remove-from-wl"])
-async def remove_from_wishlist(ctx, item_name: str = None):
-    if item_name is not None:
-        selected_item = Database.select_item(
-            user_id=int(ctx.message.author.id), item_name=item_name
-        )
-        if selected_item is not None:
-            Database.remove_from_wishlist(
-                item_name=str(item_name), user_id=int(ctx.message.author.id)
+    @commands.command(aliases=["add-to-wishlist", "add-to-wl"])
+    async def add_to_wishlist(self, ctx, item_name: str = None, *, item_url: str = None):
+        """
+        Adds the specified item to your wishlist. 
+
+        Usage:
+        > .add_to_wishlist "Item Name" "Item URL"
+        """
+        if item_name is not None:
+            Database.add_to_wishlist(
+                user=str(ctx.message.author),
+                user_id=int(ctx.message.author.id),
+                item_name=str(item_name),
+                item_url=item_url,
             )
+            embed = discord.Embed()
+            embed.description = f"Added the following item to your wishlist:\n{item_name} - Link: {item_url}"
+
+            await ctx.send(embed=embed)
         else:
             await ctx.send(
                 embed=discord.Embed(
-                    description="The item name you provided does not match any item in your account. Please type the correct name and try again."
+                    description='You forgot to enter a name for your item. Please try again, and type a name this time. The name should be enclosed in double quotes, such as, "Name goes here".'
                 )
             )
-            return
 
-        embed = discord.Embed(
-            description=f"{item_name} has been successfully removed from your wishlist."
-        )
-        await ctx.send(embed=embed)
-    else:
-        await ctx.send(
-            embed=discord.Embed(
-                description="You did not enter the name of the item which should be removed. Please try again, and type a name this time."
+
+    @commands.command(aliases=["delete-from-wl", "remove-from-wl"])
+    async def remove_from_wishlist(self, ctx, item_name: str = None):
+        """
+        Removes the item specified from your wishlist. 
+        
+        Just type the item name with this command.
+        """
+        if item_name is not None:
+            selected_item = Database.select_item(
+                user_id=int(ctx.message.author.id), item_name=item_name
             )
-        )
+            if selected_item is not None:
+                Database.remove_from_wishlist(
+                    item_name=str(item_name), user_id=int(ctx.message.author.id)
+                )
+            else:
+                await ctx.send(
+                    embed=discord.Embed(
+                        description="The item name you provided does not match any item in your account. Please type the correct name and try again."
+                    )
+                )
+                return
+
+            embed = discord.Embed(
+                description=f"{item_name} has been successfully removed from your wishlist."
+            )
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send(
+                embed=discord.Embed(
+                    description="You did not enter the name of the item which should be removed. Please try again, and type a name this time."
+                )
+            )
 
 
 def setup(client):
-    client.add_command(check_wishlist)
-    client.add_command(add_to_wishlist)
-    client.add_command(remove_from_wishlist)
+    client.add_cog(WishlistCog(client))
