@@ -3,137 +3,56 @@ import sqlite3
 from typing import List, Tuple
 import discord
 from discord.ext import commands
+from pymongo import MongoClient
+from pymongo.cursor import Cursor
+from pymongo.database import Database as MongoDatabase
 
 
 class Database:
     "This class contains all the methods that involve interacting and working with the database. The bot commands simply call these methods to perform operations on the database."
 
     @staticmethod
-    def create_connection(db_file=r"database\notes.db") -> sqlite3.Connection:
-        "Create a database connection to a SQLite database. Returns an sqlite3.Connection object."
-        conn = None
-        try:
-            conn = sqlite3.connect(db_file)
-            Database.create_required_tables(conn)
-        except sqlite3.Error as e:
-            print(e)
-        finally:
-            if conn:
-                return conn
+    def create_connection() -> MongoDatabase:
+        client = MongoClient(host="localhost", port=27017)
+        bot_db = client.hassanbot
+        return bot_db
+
 
     @staticmethod
-    def create_required_tables(conn: sqlite3.Connection):
-        """
-        Creates a table called 'notes' in the database. Takes in a 'sqlite.Connection' object and executes the SQL code to create the necessary tables.
-        This function is automatically called as soon as a connection is created, in the Database.create_connection() function.
-        """
-        try:
-            c = conn.cursor()
-
-            sql_code = """CREATE TABLE IF NOT EXISTS notes (
-                id integer PRIMARY KEY,
-                user text NOT NULL,
-                user_id integer NOT NULL,
-                title text NOT NULL,
-                note text NOT NULL
-                );"""
-
-            c.execute(sql_code)
-            conn.commit()
-
-        except sqlite3.Error as e:
-            print(e)
+    def check_notes(user_id: int) -> Cursor:
+        db = Database.create_connection()
+        notes_coll = db.notes
+        c = notes_coll.find({"user_id": user_id})
+        return c            
+        
 
     @staticmethod
-    def check_notes(user_id: int) -> List:
-        """
-        Retrieves the 'notes' from the database which belong to the given user and returns them as a List object.
+    def read_note(user_id: int, title: str) -> dict:
+        db = Database.create_connection()
+        notes_coll = db.notes
+        note = notes_coll.find_one({"user_id": user_id, "title": title})
+        return note
 
-        param <user_id>: An integer that contains the user's ID, which is like a very long number.
-        """
-        try:
-            conn = Database.create_connection()
-
-            c = conn.cursor()
-            sql_code = f"""SELECT * FROM notes WHERE user_id=?"""
-            c.execute(sql_code, (user_id,))
-
-            rows = c.fetchall()
-            return rows
-
-        except sqlite3.Error as e:
-            print(e)
 
     @staticmethod
-    def read_note(user_id: int, title: str) -> Tuple:
-        """
-        Returns a 'note' tuple from the database which matches the given parameters.
+    def add_note(user_id: int, user: str, title: str, content: str) -> bool:
+        db = Database.create_connection()
+        notes_coll = db.notes
+        result = notes_coll.insert_one({
+            "user_id": user_id,
+            "user": user,
+            "title": title,
+            "content": content
+        })
 
-        param <user_id>: An integer that contains the user's ID, which is like a very long number.
-        param <title>: A string that uniquely identifies the note. Each note has a title.
-        """
-        try:
-            conn = Database.create_connection()
-
-            c = conn.cursor()
-            sql_code = f"""SELECT * FROM notes WHERE user_id=? AND title=?"""
-            c.execute(sql_code, (user_id, title))
-
-            note = c.fetchone()
-            return note
-
-        except sqlite3.Error as e:
-            print(e)
+        return result.acknowledged
 
     @staticmethod
-    def add_note(user_id: int, user: str, title: str, content: str):
-        """
-        Creates a 'note' in the database and returns the Row ID of that note.
-
-        param <user>: A string that contains the User's name and discord tag, for example Hassan#3557.
-        param <user_id>: An integer that contains the user's ID, which is like a very long number.
-        param <title>: A string that uniquely identifies the note. Each note has a title.
-        param <content>: A string that contains all the content in the note.
-        """
-        try:
-            conn = Database.create_connection()
-            c = conn.cursor()
-            sql_code = f"""INSERT INTO notes(title,note,user_id,user) VALUES(?,?,?,?)"""
-            values = (title, content, user_id, user)
-
-            c.execute(sql_code, values)
-            conn.commit()
-            conn.close()
-
-            return c.lastrowid
-        except sqlite3.Error as e:
-            print(e)
-
-    @staticmethod
-    def remove_note(title: str, user_id: int):
-        """
-        Removes a 'note' from the database.
-
-        param <title>: A string that uniquely identifies the note. Each note has a title.
-        param <user_id>: An integer that contains the user's ID, which is like a very long number.
-        """
-        try:
-            conn = Database.create_connection()
-            c = conn.cursor()
-            sql_code = f"""DELETE FROM notes WHERE title = ? AND user_id = ?"""
-
-            c.execute(
-                sql_code,
-                (
-                    title,
-                    user_id,
-                ),
-            )
-            conn.commit()
-            conn.close()
-
-        except sqlite3.Error as e:
-            print(e)
+    def remove_note(title: str, user_id: int) -> bool:
+        db = Database.create_connection()
+        notes_coll = db.notes
+        result = notes_coll.delete_one({"title": title})
+        return result.acknowledged
 
 class NotesCog(commands.Cog, name="Notes"):
     def __init__(self, bot) -> None:
@@ -144,12 +63,12 @@ class NotesCog(commands.Cog, name="Notes"):
         """
         Get all the notes stored in your account.
         """
-        rows = Database.check_notes(user_id=int(ctx.message.author.id))
+        c = Database.check_notes(user_id=int(ctx.message.author.id))
 
         items = []
-        if rows:
-            for row in rows:
-                items.append(f"({row[0]}) {row[3]}")
+        if c:
+            for i, note in enumerate(c, start=1):
+                items.append(f"({i}) {note['title']}")
 
         embed = discord.Embed(description="**YOUR NOTES:**\n\n" + "\n".join(items))
         await ctx.send(embed=embed)
@@ -165,8 +84,8 @@ class NotesCog(commands.Cog, name="Notes"):
         """
         if title is not None:
             note = Database.read_note(user_id=int(ctx.message.author.id), title=title)
-            if note:
-                embed = discord.Embed(description=f"**{note[3]}**\n\n{note[4]}")
+            if note is not None:
+                embed = discord.Embed(description=f"**{note['title']}**\n\n{note['content']}")
                 await ctx.send(embed=embed)
             else:
                 await ctx.send(

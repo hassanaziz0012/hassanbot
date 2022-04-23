@@ -5,4 +5,4 @@ Vertigo is a discord bot I created with discord.py. To add this bot to your own 
 The command prefix is a period/dot. ( . )
 
 ## Features
-Under construction. READMEs are so boring to write...
+Under construction. READMEs are so boring to write... :)
